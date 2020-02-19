@@ -3,12 +3,12 @@ import numpy as np
 mb = 9.27 * (10 ** -21)
 Mf = 10 * mb
 Md = 5 * mb
-l = (10 ** 4)/mb
+l = (10 ** 5)/mb
 Kf = 1.4 * (10 ** -16)
 #TODO: подобрать параметры Kd, Kf
 Kd = 1.4 * (10 ** -16)
 
-c = 10 ** 14  # Normalisation constant
+c = 10 ** 13  # Normalisation constant
 
 
 def Heff (theta, h):
