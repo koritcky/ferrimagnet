@@ -15,14 +15,14 @@ def step_gen(X, y, transition=0.,k = 1, slope=100):
 
     return 1 / (1 + np.exp(-slope * (X - k * y - transition + noise))) + noise
 
-def energy_gen(x, h, n_thetas=100):
+def energy_gen(x, h, n_thetas=100, energy_function=energy):
     # X is a list of impurity concentration
     # h is a parameter of magnetic field
 
     # here we generate range of energies with given X and h
     # (you can change other parameters of task in confusion_learning/energy.py
-    Thetas = np.linspace(0, 2 * np.pi, n_thetas)
-    Energies = energy(Thetas, x, h)
+    Thetas = np.linspace(0, np.pi, n_thetas)
+    Energies = energy_function(Thetas, x, h)
     e_max = np.max(Energies)
     e_min = np.min(Energies)
 
@@ -85,7 +85,7 @@ def w_shape_gen(data, params):
     return w_data, learn_curves
 
 
-def mainloop(X, h, samples, n_thetas=100):
+def mainloop(X, h, samples, n_thetas=100, energy_fun):
 
     Z = np.zeros((X.shape[0], 1))
     w_data_stack = []

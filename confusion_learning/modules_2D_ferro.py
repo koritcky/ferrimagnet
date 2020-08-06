@@ -15,15 +15,15 @@ def step_gen(X, y, transition=0.,k = 1, slope=100):
 
     return 1 / (1 + np.exp(-slope * (X - k * y - transition + noise))) + noise
 
-def energy_gen(x, h, n_thetas=100):
+def energy_gen(x, h, n_thetas=100, energy_func=energy):
     # X is a list of impurity concentration
     # h is a parameter of magnetic field
 
     # here we generate range of energies with given X and h
     # (you can change other parameters of task in confusion_learning/energy.py
-    Thetas = np.sort(np.random.rand(n_thetas) * 2 * np.pi)
+    Thetas = np.sort(np.random.rand(n_thetas) * np.pi)
     # Thetas = np.linspace(0, 2 * np.pi, n_thetas)
-    Energies = energy(Thetas, x, h)
+    Energies = energy_func(Thetas, x, h)
     e_max = np.max(Energies)
     e_min = np.min(Energies)
 
@@ -86,7 +86,7 @@ def w_shape_gen(data, params):
     return w_data, learn_curves
 
 
-def mainloop(X, H, n_thetas=100, n_samples=10):
+def mainloop(X, H, n_thetas=100, n_samples=10, energy_func=energy):
 
     Z = np.zeros((X.shape[0], H.shape[0]))
 
@@ -95,7 +95,8 @@ def mainloop(X, H, n_thetas=100, n_samples=10):
         for _ in tqdm(range(n_samples)):
             # print('------- w-shape sample number =', i, '-------')
 
-            raw_data = np.array([np.argmin(energy_gen(x, h, n_thetas)) for x in X]).reshape(-1, 1)
+            raw_data = np.array([np.argmin(energy_gen(x, h, n_thetas, energy_func=energy_func)) for x in X]).reshape(-1, 1)
+            # raw_data = np.array([energy_gen(x, h, n_thetas, energy_func=energy_func) for x in X]).reshape(len(X), n_thetas)
             w_data, learn_curves = w_shape_gen(raw_data, X)
 
             w_data_stack.append(w_data)
