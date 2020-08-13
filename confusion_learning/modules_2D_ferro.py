@@ -5,9 +5,11 @@ from tqdm.notebook import tqdm
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from matplotlib import pyplot
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from xgboost import XGBClassifier
+
 from confusion_learning.energy import energy
+from confusion_learning.w_find import *
 
 def step_gen(X, y, transition=0.,k = 1, slope=100):
     X = X.reshape(-1, 1)
@@ -28,7 +30,7 @@ def energy_gen(x, h, n_thetas=100, energy_func=energy):
     e_min = np.min(Energies)
 
     # return np.argmin((Energies - e_min) / (e_max - e_min))
-    return (Energies - e_min) / (e_max - e_min)
+    return np.argmin((Energies - e_min) / (e_max - e_min))
 
 def data_labeling(data, params, p_expect):
     labels = (params > p_expect).astype('float')
@@ -41,7 +43,7 @@ def data_labeling(data, params, p_expect):
 
 def XGB_learning(data, labels):
     data_train, data_test, labels_train, labels_test = \
-        train_test_split(data, labels, test_size=0.2, random_state=7)
+        train_test_split(data, labels, test_size=0.3, random_state=7)
 
     # fit model no training data
 
@@ -88,26 +90,28 @@ def w_shape_gen(data, params):
 
 def mainloop(X, H, n_thetas=100, n_samples=10, energy_func=energy):
 
-    Z = np.zeros((X.shape[0], H.shape[0]))
-
+    Z = np.zeros((X.shape[0], H.shape[0])) # calculated accuracy
+    Z_nearest = np.zeros((X.shape[0], H.shape[0])) # closest w_shape
+    C = np.zeros(H.shape[0])
     for i, h in tqdm(enumerate(H)):
         w_data_stack = []
-        for _ in tqdm(range(n_samples)):
+        for sample in tqdm(range(n_samples)):
             # print('------- w-shape sample number =', i, '-------')
 
-            raw_data = np.array([np.argmin(energy_gen(x, h, n_thetas, energy_func=energy_func)) for x in X]).reshape(-1, 1)
+            raw_data = np.array([energy_gen(x, h, n_thetas, energy_func=energy_func) for x in X]).reshape(-1, 1)
             # raw_data = np.array([energy_gen(x, h, n_thetas, energy_func=energy_func) for x in X]).reshape(len(X), n_thetas)
             w_data, learn_curves = w_shape_gen(raw_data, X)
 
             w_data_stack.append(w_data)
             # learn_curves_data.append(learn_curves)
         w_shape = np.mean(w_data_stack, axis=0)
+        nearest_wshape, best_c = w_find(X[0], X[-1], w_shape)
         Z[:, i] = w_shape #sry, I think this could be better
-
+        Z_nearest[:, i], C[i] = nearest_wshape, best_c
         # w_bar = np.std(w_data_stack, axis=0)
         # learn_curves = np.mean(learn_curves_data, axis=0)
 
-    return Z
+    return Z, Z_nearest, C
 
 
 
