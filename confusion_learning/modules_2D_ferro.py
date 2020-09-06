@@ -4,6 +4,7 @@ import torch
 from tqdm.notebook import tqdm
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from sklearn import preprocessing
 from matplotlib import pyplot
 import matplotlib.pyplot as plt
 from xgboost import XGBClassifier
@@ -29,7 +30,6 @@ def energy_gen(x, h, n_thetas=100, energy_func=energy):
     e_max = np.max(Energies)
     e_min = np.min(Energies)
 
-    # return np.argmin((Energies - e_min) / (e_max - e_min))
     return np.argmin((Energies - e_min) / (e_max - e_min))
 
 def data_labeling(data, params, p_expect):
@@ -43,23 +43,24 @@ def data_labeling(data, params, p_expect):
 
 def XGB_learning(data, labels):
     data_train, data_test, labels_train, labels_test = \
-        train_test_split(data, labels, test_size=0.3, random_state=7)
+        train_test_split(data, labels, test_size=0.3)
+
+    # Shitty bug fix when labels_train consists class that is not in labels_test
+    if len(np.unique(labels_train)) == 1:
+        labels_test = labels_train[0] * np.ones(labels_test.shape)
 
     # fit model no training data
-
     model = XGBClassifier()
-    eval_set = [(data_train, labels_train), (data_test, labels_test)]
+    eval_set = [(data_test, labels_test)]
+
     model.fit(data_train, labels_train, eval_metric=["error", "logloss"], eval_set=eval_set, verbose=False)
 
-    labels_pred = model.predict(data_test)
-    predictions = [round(value) for value in labels_pred]
+    labels_pred = [round(value) for value in model.predict(data_test)]
 
-    results = model.evals_result()
-    accuracy = accuracy_score(labels_test, predictions)
-    learn_curve = 1 - np.array(results['validation_1']['error'])
+    accuracy = accuracy_score(labels_test, labels_pred)
     # print('Accuracy = ', accuracy)
 
-    return accuracy, learn_curve
+    return accuracy
 
 def plot_learn_curves_cut(learn_curves, p_guess, x_true):
     fig = plt.figure()
@@ -82,25 +83,24 @@ def w_shape_gen(data, params):
 
     for p in params:
         data, labels = data_labeling(data, params, p)
-        acc, curve = XGB_learning(data, labels)
-        w_data.append(acc)
-        learn_curves.append(curve)
-    return w_data, learn_curves
+        accuracy = XGB_learning(data, labels)
+        w_data.append(accuracy)
+    return w_data
 
 
-def mainloop(X, H, n_thetas=100, n_samples=10, energy_func=energy):
+def mainloop(X, Y, n_thetas=100, n_samples=10, energy_func=energy):
 
-    Z = np.zeros((X.shape[0], H.shape[0])) # calculated accuracy
-    Z_nearest = np.zeros((X.shape[0], H.shape[0])) # closest w_shape
-    C = np.zeros(H.shape[0])
-    for i, h in tqdm(enumerate(H)):
+    Z = np.zeros((X.shape[0], Y.shape[0])) # calculated accuracy
+    Z_nearest = np.zeros((X.shape[0], Y.shape[0])) # closest w_shape
+    C = np.zeros(Y.shape[0])
+    for i, y in tqdm(enumerate(Y)):
         w_data_stack = []
         for sample in tqdm(range(n_samples)):
             # print('------- w-shape sample number =', i, '-------')
 
-            raw_data = np.array([energy_gen(x, h, n_thetas, energy_func=energy_func) for x in X]).reshape(-1, 1)
+            raw_data = np.array([energy_gen(x, y, n_thetas, energy_func=energy_func) for x in X]).reshape(-1, 1)
             # raw_data = np.array([energy_gen(x, h, n_thetas, energy_func=energy_func) for x in X]).reshape(len(X), n_thetas)
-            w_data, learn_curves = w_shape_gen(raw_data, X)
+            w_data = w_shape_gen(raw_data, X)
 
             w_data_stack.append(w_data)
             # learn_curves_data.append(learn_curves)

@@ -1,0 +1,6 @@
+X_range: [0.33, 0.3425]
+H_range: [80000.0, 125000.0]
+n_X: 50
+n_H: 50
+n_thetas: 30
+n_samples: 30
